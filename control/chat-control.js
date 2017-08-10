@@ -44,54 +44,49 @@ router.ws('/send.json', function(ws, req) {
       return;
     }
 
+    var now = moment().format("YYYY-MM-DD HH:mm:ss")
     if (myMap.has('oppMap')) {
       var data = JSON.stringify({
         'message': msg,
-        'sender': 'him'
+        'sender': 'him',
+        'readChange': 'N',
+        'time': now
       })
       broadcast(myMap, data)
     }
 
-    if(myMap.get('isMusician')) addMusiChat(myMap, msg)
-    else addChat(myMap, msg)
+    if(myMap.get('isMusician')) addMusiChat(myMap, msg, myMap.has('oppMap'), now)
+    else addChat(myMap, msg, myMap.has('oppMap'), now)
 
   }) //ws.on()
 }) //router.ws()
 
 
-function addChat(myMap, msg) {
-  var now = moment().format("YYYY-MM-DD HH:mm:ss")
+function addChat(myMap, msg, isRead, now) {
   chatService.insert({
     'muno' : myMap.get('opponent'),
     'mno' : myMap.get('user'),
     'msg' : msg,
     'date' : now,
-    'who' : myMap.get('user')
+    'who' : myMap.get('user'),
+    'isread' : isRead ? 'Y' : 'N'
   }, function(result) {
-    var data = {
-      'message': msg,
-      'sender': 'me'
-    }
-    myMap.get('ws').send(JSON.stringify(data));
+
   }, function(error) {
     console.log(error)
   })//chatService.insert()
 } //addChat()
 
-function addMusiChat(myMap, msg) {
-  var now = moment().format("YYYY-MM-DD HH:mm:ss")
+function addMusiChat(myMap, msg, isRead, now) {
   chatService.insert({
     'mno' : myMap.get('opponent'),
     'muno' : myMap.get('user'),
     'msg' : msg,
     'date' : now,
-    'who' : myMap.get('user')
+    'who' : myMap.get('user'),
+    'isread' : isRead ? 'Y' : 'N'
   }, function(result) {
-    var data = {
-      'message': msg,
-      'sender': 'me'
-    }
-    myMap.get('ws').send(JSON.stringify(data));
+
   }, function(error) {
     console.log(error)
   })//chatService.insert()
@@ -106,6 +101,9 @@ function setCommunicator(myMap) {
       console.log('상대도 온라인 상태');
       myMap.set('oppMap', oppMap)
       oppMap.set('oppMap', myMap)
+      updateReadState(myMap)
+      // var obj = {'read' = 'Y'}
+      // myMap.get('ws').send(JSON.stringify(obj))
       return;
     }
     console.log('상대는 오프라인');
@@ -113,10 +111,42 @@ function setCommunicator(myMap) {
 } //broadcast()
 
 function broadcast(myMap, data) {
-  console.log('브로드 캐스트 => ' + myMap.get('opponent') + ', wsID: ' + myMap.get('oppMap').get('ws')._socket._handle.fd);
-  myMap.get('oppMap').get('ws').send(data)
+  console.log('브로드 캐스트 => ' + myMap.get('opponent'));
+  var userMap = myMap.get('oppMap')
+    userMap.get('ws').send(data)
 }
 
+
+function updateReadState(myMap) {
+  var data = {
+    'sender': 'him',
+    'readChange': 'Y'
+    };
+
+  if(myMap.get('isMusician')) {
+    chatService.update(myMap.get('opponent'), myMap.get('user'), function(result) {
+      console.log('읽음정보 업데이트됨')
+      broadcast(myMap, JSON.stringify(data))
+      myMap.get('ws').send(JSON.stringify(data))
+    }, function(error) {
+      res.status(200)
+        .set('Content-Type', 'text/plain;charset=UTF-8')
+        .end('error')
+      console.log(error)
+    })
+  } else {
+    chatService.update(myMap.get('user'), myMap.get('opponent'), function(result) {
+      console.log('읽음정보 업데이트됨')
+      broadcast(myMap, JSON.stringify(data))
+      myMap.get('ws').send(JSON.stringify(data))
+    }, function(error) {
+      res.status(200)
+        .set('Content-Type', 'text/plain;charset=UTF-8')
+        .end('error')
+      console.log(error)
+    })
+  }
+}
 
 
 router.post('/list.json', (req, res) => {
@@ -160,6 +190,16 @@ router.post('/getPhotoPath.json', (req, res) => {
   })
 })
 
+router.post('/quit.json', (req, res) => {
+  var result = removeClient(req.body.no)
+  console.log(req.body.no + '퇴장! >> ' + result)
+  console.log('---------------- 현재 클라이언트 목록 ----------------')
+  console.log(clients)
+  console.log('------------------------------------------------------')
+  res.json({
+    'state': result
+  })
+})
 
 function getFile(photo) {
   // var path = photo.substring(1);
@@ -169,6 +209,34 @@ function getFile(photo) {
     console.log('file transfer succeed')
   });
 }
+
+function removeClient(no) {
+  var result;
+  for (var i = 0; i < clients.length; i++) {
+    if(clients[i].get('user') == no) {
+      clients.splice(i, i + 1)
+      result = 'removed from client list '
+      break;
+    }
+  }
+
+  for (var j = 0; j < clients.length; j++) {
+    if(clients[j].get('opponent') == no) {
+      var data = {"exit": "exit"}
+      clients[j].get('ws').send(JSON.stringify(data))
+      clients[j].delete('oppMap')
+      result += "and from opponent's map"
+      break;
+    }
+  }
+
+  return result;
+}
+
+module.exports = router
+
+
+
 
 
 // var filePath = 'c:/book/discovery.docx';
@@ -183,10 +251,6 @@ function getFile(photo) {
 // ensureDirectoryExistence(dirname);
 // fs.mkdirSync(dirname);
 // }
-
-
-module.exports = router
-
 
 //
 // router.post('/change.json', (req, res) => {

@@ -8,8 +8,8 @@ module.exports = {
   insert: function(chat, successFn, errorFn) {
     this.connection.query(
       'insert into chat(muno, mno, isread, msg, date, who) \
-          values(?, ?, "N", ?, ?, ?)',
-      [ chat.muno, chat.mno, chat.msg, chat.date, chat.who],
+          values(?, ?, ?, ?, ?, ?)',
+      [ chat.muno, chat.mno, chat.isread, chat.msg, chat.date, chat.who],
       function(error, result) {
         if (error) {
           errorFn(error)
@@ -70,5 +70,20 @@ module.exports = {
         }
       }) //connection.query()
   },//selectPhotoPath()
+
+  update: function(memberNo, musicianNo, successFn, errorFn) {
+    this.connection.query(
+      "update chat set isread='Y' \
+      where mno=? and muno=? and isread='N'",
+      [memberNo, musicianNo],
+      function(error, result) {
+        if (error) {
+          errorFn(error)
+        } else {
+          successFn(result)
+        }
+      }) //connection.query()
+  }//update()
+
 
 }// exports

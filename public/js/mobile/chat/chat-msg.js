@@ -1,5 +1,6 @@
 "use strict"
 moment().format();
+console.log(moment.locale());
 
 $(document).ready(function() {
   $(".animsition").animsition({
@@ -33,49 +34,53 @@ var params = decodeURIComponent(location.href).split('?')[1],
   receiverNo = parseInt(params.split('&')[0].split('=')[1]),
   nickName = params.split('&')[1].split('=')[1],
   senderNo = parseInt(params.split('&')[2].split('=')[1]),
-	mode = params.split('&')[3].split('=')[1];
+  mode = params.split('&')[3].split('=')[1],
+  isOpponentOnline = 'N';
 
-  window.history.pushState("object or string", "Title", "/" + window.location.href.substring(window.location.href.lastIndexOf('/') + 1).split("?")[0]);
+window.history.pushState("object or string", "Title", "/" + window.location.href.substring(window.location.href.lastIndexOf('/') + 1).split("?")[0]);
 
 $(window).on('load', function() {
   var messageBox = $('#messageBox'),
     sendBtn = $('#send-btn'),
     msgInput = $('#msg-input'),
-    msgInputBox = $('.message-input-box');
+    msgInputBox = $('.message-input-box'),
+    backBtn = $('.back-btn');
 
-    messageBox.scrollTop(messageBox.prop('scrollHeight'));
-    $('.chat-msg-header').text(nickName)
+  messageBox.scrollTop(messageBox.prop('scrollHeight'));
+  $('.chat-msg-header').text(nickName)
 
-	var photo;
+  var photo;
 
-	getPhotoPath()
-	function getPhotoPath() {
-		$.post('/chat/getPhotoPath.json',
-		{'no' : receiverNo},
+  getPhotoPath()
+
+  function getPhotoPath() {
+    $.post('/chat/getPhotoPath.json', {
+        'no': receiverNo
+      },
       function(result) {
         photo = result.photo
-				displayChatBubbles()
+        displayChatBubbles()
         readyChat()
       }).done(function() {}).fail(function() {
       console.log('post요청 실패')
     }).always(function() {});
-	}
+  }
 
 
   function displayChatBubbles() {
-		var url;
+    var url;
     if (mode == 'musimode') url = '/chat/listMusi.json'
-		else url = '/chat/list.json'
+    else url = '/chat/list.json'
 
     $.post(url, {
         "senderNo": senderNo,
         "receiverNo": receiverNo,
-				"photo": photo
+        "photo": photo
       },
       function(result) {
         $.each(result.list, function(i, item) {
-					photo = item.path;
-          appendChatBubble(item.msg, item.who == senderNo, false)
+          photo = item.path;
+          appendChatBubble(item.msg, item.who == senderNo, false, item.isread, item.time)
         });
       }).done(function() {}).fail(function() {
       console.log('post요청 실패')
@@ -84,54 +89,119 @@ $(window).on('load', function() {
 
 
 
-  function appendChatBubble(value, isMyAlias, isSendData) {
+  function appendChatBubble(value, isMyAlias, isSendData, isread, time) {
     /*space나 줄바꿈만 있는 경우 버블을 추가하지 않음.*/
     var text = value.replace(/\r?\n/g, '');
     text = text.replace(/\s/g, "");
     if (!text) return;
 
-		var sendValue = value;
+    var sendValue = value;
 
-		value = value.replace(/\r?\n/g, '<br />');
-    $('<div>').addClass('chat-balloon')
+    value = value.replace(/\r?\n/g, '<br />');
+    var readTag = $('<span>').addClass('read').addClass(isMyAlias ? "my-read" : 'his-read')
+    var timeTag = $('<span>').addClass('time').addClass(isMyAlias ? "my-time" : 'his-time')
+    var balloon = $('<div>').addClass('chat-balloon')
       .addClass(isMyAlias ? "me" : "him")
       .html(value)
       .appendTo(messageBox)
       .append($('<img>').attr('src', isMyAlias ? '' : photo + '_80.png').addClass(isMyAlias ? '' : 'sender-img'))
       .append($('<div>').addClass('tail').addClass(isMyAlias ? "me-tail" : "him-tail"))
       .append($('<div>').addClass('tail-white').addClass(isMyAlias ? "me-tail-white" : "him-tail-white"))
+      .append(readTag)
+      .append(timeTag)
 
-    if (isSendData) sendChat(sendValue)
+    displayReadTag(balloon, readTag, isMyAlias, isread)
+    displayTimeTag(balloon, timeTag, isMyAlias, readTag, time)
+    if (isSendData) {
+      sendChat(sendValue)
+      msgInput.val('')
+      msgInput.focus()
+    }
 
-    msgInput.val('')
-
-    msgInput.focus()
     sizeBack()
 
     resizeMessageBoxPadding()
 
-    messageBox.scrollTop(messageBox.height())
+    var viewHeight
+    if (messageBox.height() < messageBox.prop("scrollHeight")) viewHeight = messageBox.prop("scrollHeight")
+    else viewHeight = messageBox.height()
+
+    messageBox.scrollTop(viewHeight)
   }
 
-var ws;
-function readyChat() {
-  ws = new WebSocket('ws://192.168.0.22:8888/chat/send.json');
 
-	ws.onopen = function(event) {
-		var obj = {
-			'receiver': receiverNo,
-			'sender': senderNo,
-			'isMusician': (mode == 'musimode' ? 'Y' : 'N')
-		}
-		ws.send(JSON.stringify(obj))
-	}
+  function displayReadTag(balloon, readTag, isMyAlias, isread) {
+    if (isMyAlias) {
+      readTag.css('right', parseFloat(balloon.css('width')) + parseFloat(balloon.css('padding-left')) +
+        parseFloat(balloon.css('margin-right')))
+      if (isread == 'N') {
+        readTag.html('안읽음')
+      } else {
+        readTag.html('읽음<i class="fa fa-check" aria-hidden="true"></i>')
+      }
+    } else {
+      readTag.css('left', parseFloat(balloon.css('width')) + parseFloat(balloon.css('padding-right')) +
+          parseFloat(balloon.css('padding-left')) + 2.5)
+        .html('읽음<i class="fa fa-check" aria-hidden="true"></i>')
+    }
+  }
 
-	ws.onmessage = function(event) {
-		var data = JSON.parse(event.data)
-		console.log(data)
-		if (data.sender == 'him') appendChatBubble(data.message, false, false)
-	};
-}
+  function displayTimeTag(balloon, timeTag, isMyAlias, readTag, time) {
+    var htmlTime;
+    if(time) {
+      var h = time.split(':')[0],
+          m = time.split(':')[1],
+          s = time.split(':')[2],
+          obj = {hours:h, minutes:m, seconds:s};
+      htmlTime = moment(obj).format('a hh:mm')
+    } else {
+      htmlTime = moment().format('a hh:mm')
+    }
+
+    if (isMyAlias) {
+      timeTag.css('right', parseFloat(balloon.css('width')) + parseFloat(balloon.css('padding-left')) +
+                parseFloat(balloon.css('margin-right')) + parseFloat(readTag.css('width')))
+              .html(htmlTime)
+    } else {
+      timeTag.css('left', parseFloat(balloon.css('width')) + parseFloat(balloon.css('padding-right')) +
+                parseFloat(balloon.css('padding-left')))
+              .html(htmlTime)
+    }
+  }
+
+
+
+  var ws;
+
+  function readyChat() {
+    ws = new WebSocket('ws://192.168.0.22:8888/chat/send.json');
+
+    ws.onopen = function(event) {
+      var obj = {
+        'receiver': receiverNo,
+        'sender': senderNo,
+        'isMusician': (mode == 'musimode' ? 'Y' : 'N')
+      }
+      ws.send(JSON.stringify(obj))
+    }
+
+    ws.onmessage = function(event) {
+      var data = JSON.parse(event.data)
+      console.log(data)
+      if (data.sender == 'him') {
+        if (data.readChange == 'Y') {
+          console.log('읽음정보 업데이트!')
+          $('.read').html('읽음<i class="fa fa-check" aria-hidden="true"></i>')
+          isOpponentOnline = 'Y';
+        } else {
+          appendChatBubble(data.message, false, false, data.read)
+        }
+      } else if(data.exit) {
+        isOpponentOnline = "N"
+        console.log('상대방 퇴장함')
+      }
+    };
+  }
 
 
   function sendChat(value) {
@@ -140,7 +210,6 @@ function readyChat() {
     }
     ws.send(JSON.stringify(obj))
   }
-
 
 
 
@@ -169,7 +238,7 @@ function readyChat() {
 
 
   sendBtn.on('click', function() {
-    appendChatBubble(msgInput.val(), true, true)
+    appendChatBubble(msgInput.val(), true, true, isOpponentOnline)
   })
 
   msgInput.keyup(function(e) {
@@ -190,5 +259,16 @@ function readyChat() {
     msgInputBox.css('height', '7vh')
     msgInputBox.css('line-height', '7vh')
   }
+
+  backBtn.on('click', function() {
+    $.post('/chat/quit.json', {
+        "no": senderNo
+      },
+      function(result) {
+        window.history.go(-2);
+      }).done(function() {}).fail(function() {
+      console.log('post요청 실패')
+    }).always(function() {});
+  })
 
 })

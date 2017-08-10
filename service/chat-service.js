@@ -27,6 +27,10 @@ module.exports = {
 
   getPhotoPath(memberNo, success, error) {
     this.chatDao.selectPhotoPath(memberNo, success, error)
-  }//getPhotoPath()
+  },//getPhotoPath()
+
+  update(memberNo, musicianNo, success, error) {
+    this.chatDao.update(memberNo, musicianNo, success, error)
+  },//insert()
 
 } // exports
