@@ -43,7 +43,7 @@ var dateBefore;
 var isMyAliasBefore;
 
 /*get요청 파라미터 안보이게 하기*/
-window.history.pushState("object or string", "Title", "/" + window.location.href.substring(window.location.href.lastIndexOf('/') + 1).split("?")[0]);
+window.history.replaceState(null, null, "/" + window.location.href.substring(window.location.href.lastIndexOf('/') + 1).split("?")[0]);
 
 
 $(window).on('load', function() {
@@ -224,6 +224,7 @@ $(window).on('load', function() {
       dateBefore = sendDate
       $('<p>').addClass('date').addClass('chat-balloon').appendTo(messageBox).html(htmlDate)
       isMyAliasBefore = null//날짜 표시 다음에 오는 메시지에는 time tag를 달 수 있도록 비워줌
+      resizeMessageBoxPadding()
     }
   }//displayDateLine
 
@@ -278,7 +279,6 @@ $(window).on('load', function() {
       parseFloat(lastBalloon.css('padding-top')) +
       parseFloat(lastBalloon.css('padding-bottom'));
 
-
     var result = padding - totalBalloonHeight;
     if (result < 30) {
       result = 30;
@@ -310,3 +310,21 @@ $(window).on('load', function() {
   }
 
 })
+
+
+
+
+
+
+
+$(window).scroll(function() {
+   if ($(document).scrollTop() >= 1) {
+      $("html").css({
+         "touch-action": "auto"}
+      );
+   } else {
+      $("html").css({
+         "touch-action": "pan-down"
+      });
+   }
+});

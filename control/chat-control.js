@@ -169,7 +169,6 @@ function broadcast(myMap, data) {
 router.post('/list.json', (req, res) => {
   checkFileExist(req.body.photo)//상대방의 사진이 서버에 없으면, java서버에서 사진을 가져옴
   chatService.list(req.body.senderNo, req.body.receiverNo, function(results) {
-    console.log(results)
     res.json({
       'list': results
     })
