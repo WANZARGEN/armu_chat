@@ -22,7 +22,7 @@ module.exports = {
 
   select: function(memberNo, musicianNo, successFn, errorFn) {
     this.connection.query(
-      'select chatno, isread, cast(date as date) as date, cast(date as time) as time, msg, \
+      'select chatno, isread, c.date, msg, \
       c.muno as opponent, c.mno as user, who, musi.nick as nick, mu.path \
       from chat c \
       inner join memb mu on c.muno=mu.mno inner join musi on mu.mno=musi.muno \
