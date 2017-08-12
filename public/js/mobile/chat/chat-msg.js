@@ -1,7 +1,10 @@
 "use strict"
 moment().format();
 console.log(moment.locale());
-
+var host = '192.168.0.10',
+	  javaPort = 8080,
+    nodePort = 8888;
+    
 $(".animsition").animsition({
   inClass: 'fade-in-right',
   outClass: 'fade-out-left',
@@ -63,7 +66,7 @@ $(window).on('load', function() {
   })
 
   backBtn.on('click', function() {
-    location.href = 'http://192.168.0.22:8080/mobile/chat/index.html?mode=' + mode
+    location.href = 'http://' + host + ':'+ javaPort + '/mobile/chat/index.html?mode=' + mode
   })
 
   getPhotoPath()
@@ -233,7 +236,7 @@ $(window).on('load', function() {
 
 
   function readyChat() {
-    ws = new WebSocket('ws://192.168.0.22:8888/chat/send.json');
+    ws = new WebSocket('ws://' + host + ':' + nodePort + '/chat/send.json');
 
     ws.onopen = function(event) {
       var obj = {

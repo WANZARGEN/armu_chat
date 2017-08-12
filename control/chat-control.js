@@ -10,6 +10,9 @@ var fs = require('fs'),
     path = require('path'),
     http = require('http');
 
+var host = '192.168.0.10',
+    port = 8080;
+
 const connection = datasource.getConnection()
 chatDao.setConnection(connection)
 chatService.setChatDao(chatDao)
@@ -217,7 +220,7 @@ function checkFileExist(photo) {
 
 function getFile(filepath, photo) {
   var file = fs.createWriteStream(filepath);
-  var request = http.get("http://192.168.0.22:8080" + photo + "_80.png", function(response) {
+  var request = http.get("http://" + host + ":" + port + photo + "_80.png", function(response) {
     response.pipe(file);
     console.log('file transfer succeed')
   });
