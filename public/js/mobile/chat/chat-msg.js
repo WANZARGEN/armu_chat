@@ -1,7 +1,7 @@
 "use strict"
 moment().format();
 console.log(moment.locale());
-var host = '192.168.0.12',
+var host = '192.168.0.22',
 	  javaPort = 8080,
     nodePort = 8888;
 
