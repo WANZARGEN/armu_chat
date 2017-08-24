@@ -1,10 +1,10 @@
 "use strict"
 moment().format();
 console.log(moment.locale());
-var host = '192.168.0.10',
+var host = '192.168.0.12',
 	  javaPort = 8080,
     nodePort = 8888;
-    
+
 $(".animsition").animsition({
   inClass: 'fade-in-right',
   outClass: 'fade-out-left',

@@ -10,7 +10,7 @@ var fs = require('fs'),
     path = require('path'),
     http = require('http');
 
-var host = '192.168.0.10',
+var host = '192.168.0.22',
     port = 8080;
 
 const connection = datasource.getConnection()
